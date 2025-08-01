@@ -1,35 +1,46 @@
-# Document Analyzer
+# MultiDoc-LLM-Summary-Tool
 
-A Python project for analyzing documents with extensible architecture for metadata extraction and future LLM integration.
+A Python project for analyzing and summarizing documents with extensible architecture for metadata extraction and LLM integration.
 
 ## Features
 
-- Base document reader class for extensible document processing
+- Base document reader classes for extensible document processing (Text and PDF support)
 - Comprehensive metadata extraction (names, dates, entities, people, descriptions)
-- Extensible architecture ready for LLM integration
-- Comprehensive test suite with 48 passing tests
+- LLM integration with OpenAI support for document analysis and summarization
+- Document cross-referencing and relationship analysis
+- Comprehensive test suite with extensive coverage
 
 ## Project Structure
 
 ```
-document-analyzer/
+document_summarizer/
 ├── src/
-│   └── document_analyzer/
+│   └── document_summarizer/
 │       ├── __init__.py
 │       ├── base/
 │       │   ├── __init__.py
-│       │   └── document_reader.py      # Base classes and TextDocumentReader
+│       │   ├── document_reader.py      # Base classes and TextDocumentReader
+│       │   └── pdf_reader.py           # PDF document reader
 │       ├── models/
 │       │   ├── __init__.py
 │       │   └── metadata.py             # DocumentMetadata model
 │       └── interfaces/
 │           ├── __init__.py
-│           └── llm_interface.py        # LLM integration interfaces
+│           ├── llm_interface.py        # LLM integration interfaces
+│           └── openai_llm.py           # OpenAI LLM implementation
 ├── tests/
 │   ├── __init__.py
 │   ├── test_document_reader.py         # Document reader tests
 │   ├── test_metadata.py                # Metadata model tests
-│   └── test_llm_interface.py           # LLM interface tests
+│   ├── test_llm_interface.py           # LLM interface tests
+│   └── test_pdf_reader.py              # PDF reader tests
+├── dev_tools/
+│   ├── debug/                          # Debug utilities and examples
+│   └── examples/                       # Example scripts and tests
+├── data/
+│   ├── output/                         # Analysis results and outputs
+│   ├── sample_pdfs/                    # Sample PDF documents
+│   └── sample_texts/                   # Sample text documents
 ├── .github/
 │   └── copilot-instructions.md         # Development guidelines
 ├── requirements.txt                    # Project dependencies
@@ -47,7 +58,7 @@ document-analyzer/
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd document-analyzer
+cd document_summarizer
 
 # Create virtual environment (recommended)
 python -m venv .venv
@@ -55,6 +66,10 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Install with LLM support (optional)
+pip install -r requirements.txt
+pip install ".[llm]"  # For OpenAI integration
 ```
 
 ## Usage
@@ -62,14 +77,19 @@ pip install -r requirements.txt
 ### Basic Usage
 
 ```python
-from document_analyzer.base.document_reader import TextDocumentReader
-from document_analyzer.models.metadata import DocumentMetadata
+from document_summarizer.base.document_reader import TextDocumentReader
+from document_summarizer.base.pdf_reader import PDFDocumentReader
+from document_summarizer.models.metadata import DocumentMetadata
 
-# Create a document reader instance
-reader = TextDocumentReader()
+# Create document reader instances
+text_reader = TextDocumentReader()
+pdf_reader = PDFDocumentReader()
 
-# Extract metadata from a document
-metadata = reader.extract_metadata("path/to/document.txt")
+# Extract metadata from a text document
+metadata = text_reader.extract_metadata("path/to/document.txt")
+
+# Extract metadata from a PDF document
+pdf_metadata = pdf_reader.extract_metadata("path/to/document.pdf")
 
 # Display results
 print(f"Document: {metadata.name}")
@@ -77,18 +97,22 @@ print(f"Description: {metadata.description}")
 print(metadata.to_summary())
 ```
 
-### Advanced Usage with Document Analyzer
+### Advanced Usage with LLM Integration
 
 ```python
-from document_analyzer.interfaces.llm_interface import DocumentAnalyzer
-from document_analyzer.base.document_reader import TextDocumentReader
+from document_summarizer.interfaces.llm_interface import DocumentAnalyzer
+from document_summarizer.interfaces.openai_llm import OpenAILLM
+from document_summarizer.base.document_reader import TextDocumentReader
 
-# Initialize analyzer (without LLM for now)
-analyzer = DocumentAnalyzer()
+# Initialize LLM interface
+llm = OpenAILLM(api_key="your-openai-api-key")
+
+# Initialize analyzer with LLM
+analyzer = DocumentAnalyzer(llm_interface=llm)
 reader = TextDocumentReader()
 
-# Analyze a single document
-result = analyzer.analyze_single_document("document.txt", reader)
+# Analyze a single document with LLM
+result = analyzer.analyze_single_document("document.txt", reader, use_llm=True)
 
 # Cross-reference multiple documents
 results = analyzer.cross_reference_documents([
@@ -113,13 +137,22 @@ pytest
 pytest -v
 
 # With coverage report
-pytest --cov=src/document_analyzer --cov-report=html
+pytest --cov=src/document_summarizer --cov-report=html
+
+# Run tests using VS Code tasks
+# Use Ctrl+Shift+P -> "Tasks: Run Task" -> "Run Tests"
 ```
 
 ### Run Specific Tests
 ```bash
 # Run tests for a specific module
 pytest tests/test_document_reader.py
+
+# Run PDF reader tests
+pytest tests/test_pdf_reader.py
+
+# Run LLM interface tests
+pytest tests/test_llm_interface.py
 
 # Run a specific test function
 pytest tests/test_document_reader.py::TestTextDocumentReader::test_extract_metadata_complete
@@ -132,21 +165,23 @@ pytest tests/test_document_reader.py::TestTextDocumentReader::test_extract_metad
 The project follows a modular, extensible architecture:
 
 - **Base Classes**: `DocumentReader` abstract base class for different document types
+- **Document Readers**: `TextDocumentReader` for text files, `PDFDocumentReader` for PDF files
 - **Metadata Model**: `DocumentMetadata` with comprehensive entity tracking
-- **LLM Integration**: Interface-based design ready for multiple LLM providers
-- **Testing**: Comprehensive test suite with 48 tests covering all functionality
+- **LLM Integration**: Interface-based design with OpenAI implementation
+- **Document Analysis**: `DocumentAnalyzer` for single document analysis and cross-referencing
+- **Testing**: Comprehensive test suite covering all functionality
 
 ### Adding New Document Types
 
 1. Inherit from `DocumentReader`:
 ```python
-class PDFDocumentReader(DocumentReader):
+class WordDocumentReader(DocumentReader):
     def __init__(self):
         super().__init__()
-        self.supported_extensions = {'.pdf'}
+        self.supported_extensions = {'.docx', '.doc'}
     
     def read_content(self, file_path: str) -> str:
-        # Implement PDF reading logic
+        # Implement Word document reading logic
         pass
 ```
 
@@ -283,19 +318,21 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [x] Base document reader architecture
 - [x] Comprehensive metadata model
 - [x] Text document processing
+- [x] PDF document processing
 - [x] Entity extraction (organizations, people, dates, documents)
-- [x] Complete test suite (48 tests)
-- [x] Extensible LLM interface design
+- [x] OpenAI LLM integration
+- [x] Document analysis and summarization
+- [x] Document cross-referencing
+- [x] Complete test suite with extensive coverage
 
 ### Planned Features 🚧
-- [ ] PDF document reader implementation
 - [ ] DOCX document reader implementation
-- [ ] OpenAI LLM integration
 - [ ] Azure OpenAI LLM integration
 - [ ] Enhanced NER with spaCy/NLTK
 - [ ] Document similarity analysis
 - [ ] REST API interface
 - [ ] Web interface for document upload and analysis
+- [ ] Batch document processing
 
 ### Future Enhancements 🔮
 - [ ] Support for images and OCR
