@@ -58,9 +58,9 @@ llm = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/example/document-analyzer"
-Repository = "https://github.com/example/document-analyzer.git"
-Issues = "https://github.com/example/document-analyzer/issues"
+Homepage = "https://github.com/krish-jayaratne/MultiDoc-LLM-Summary-Tool"
+Repository = "https://github.com/krish-jayaratne/MultiDoc-LLM-Summary-Tool.git"
+Issues = "https://github.com/krish-jayaratne/MultiDoc-LLM-Summary-Tool/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
